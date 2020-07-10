@@ -2,6 +2,16 @@
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 public static class SaveSys{
+
+    public static void SaveToDataFrame(int generation, int fitness, float mutationRate){
+        string path = Application.persistentDataPath + "/dataframe.df";
+        
+        using (StreamWriter sw = File.AppendText(path)){
+            sw.Write(generation +",");
+            sw.Write(fitness +",");
+            sw.WriteLine(mutationRate.ToString().Replace(",", "."));
+        }
+    }
     public static void SaveGeneration(Individual[] population, int generation){
         BinaryFormatter formatter = new BinaryFormatter();
         string path = Application.persistentDataPath + "/generation" + generation + ".gen";

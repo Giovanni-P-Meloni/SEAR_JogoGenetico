@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,8 +11,10 @@ public class GeneticAlg : MonoBehaviour
     public string atLevel = "Level 1"; //FIX ME: Checar LvlChoice.cs
     [Header("GA Variables")]
     public int popsize = 10;
-    public float initital_mutationChance = 0.1f;
-    public int shotQuantity = 2;
+    public float initital_mutationChance = .5f;
+    public float mutationIncreaseRate = .5f;
+    public int shotQuantity = 3;
+    public int predationRate = 5;
     public Individual[] population;
     [HideInInspector]
     public bool undergoingDraw;
@@ -22,6 +25,7 @@ public class GeneticAlg : MonoBehaviour
 
     //Privates
     private float mutationChance;
+    private int predationCounter;
     private int currentIndividualIndex; //counter
     private int currentGeneration;
     private int bestGeneration;
@@ -33,9 +37,6 @@ public class GeneticAlg : MonoBehaviour
     void Start()
     {
         Setup();
-        currentIndividual = population[currentIndividualIndex];
-        individualReady = true;
-        undergoingDraw = false;
         //Debug.Log(population[Random.Range(0,299)].angle);
     }
 
@@ -70,7 +71,7 @@ public class GeneticAlg : MonoBehaviour
                 float[] auxAngles = new float[shotQuantity];    
                 for (int j = 0; j < auxAngles.Length; j++)
                 {
-                    auxAngles[j] = Random.Range(-89f, 89f);
+                    auxAngles[j] = UnityEngine.Random.Range(-89f, 89f);
                 }
                 population[i] = new Individual(auxAngles);
             }
@@ -80,8 +81,12 @@ public class GeneticAlg : MonoBehaviour
             bestOfBest = new Individual(shotQuantity);
         }
 
+        predationCounter = 0;
         mutationChance = initital_mutationChance;
         currentIndividualIndex = 0;
+        currentIndividual = population[currentIndividualIndex];
+        individualReady = true;
+        undergoingDraw = false;
     }
 
     //Evaluate fitness and choose next generation
@@ -89,24 +94,36 @@ public class GeneticAlg : MonoBehaviour
         this.undergoingDraw = true;
 
         Individual bestOfGen = new Individual(shotQuantity);
-        bestOfGen = GetBestIndividual(population);
+       
+        //Sorting the array....
+        Array.Sort(population, delegate(Individual x, Individual y){
+            return x.score.CompareTo(y.score); 
+        });
+        
+
+        bestOfGen = GetBestIndividual(population);//REDUNDANT
+        
 
         bool isCurrentGenBetter = false;
         if (bestOfBest.score < bestOfGen.score){
+            predationCounter = 0;
+            SaveSys.SaveToDataFrame(currentGeneration, bestOfGen.score, mutationChance);
             isCurrentGenBetter = true;
             mutationChance = initital_mutationChance;
-            SaveStatus(isCurrentGenBetter);//Saving the result of this iteration
-            NextGeneration(bestOfGen);
             bestOfBest = bestOfGen;
-            this.undergoingDraw = false;
+            
         }
         else{
+            predationCounter++;
+            SaveSys.SaveToDataFrame(currentGeneration, bestOfBest.score, mutationChance);
             Debug.Log("Last Generation was better");
-            mutationChance *= 2f; //keep multiplying by 2, until it finds a better gen
-            SaveStatus(isCurrentGenBetter);
-            NextGeneration(bestOfBest);
-            this.undergoingDraw = false;
+            mutationChance += mutationIncreaseRate; //keep multiplying by 2, until it finds a better gen
+            
         }
+
+        SaveStatus(isCurrentGenBetter, currentGeneration);//Saving the result of this iteration
+        NextGeneration(bestOfBest);
+        this.undergoingDraw = false;
         
     }
 
@@ -122,7 +139,7 @@ public class GeneticAlg : MonoBehaviour
         if(!this.individualReady && !ProjectBHV.projSpawned && !this.undergoingDraw){//AI receives Control
             //Debug.Log("AI got Control");
             population[currentIndividualIndex].score = Player.Score; //Register the score
-            Debug.Log(currentIndividualIndex + " " + population.Length);
+            //Debug.Log(currentIndividualIndex + " " + population.Length);
             currentIndividualIndex++;
             if (currentIndividualIndex >= popsize) {
                 Debug.Log("Reached the end of population " +  currentGeneration);
@@ -142,20 +159,22 @@ public class GeneticAlg : MonoBehaviour
     }
 
     //Saving the current generation
-    void SaveStatus(bool betterGenFound){
-        SaveSys.SaveGeneration(population, currentGeneration);
-        if (betterGenFound) SaveSys.SaveLastBestGen(currentGeneration);
+    void SaveStatus(bool betterGenFound, int genNumber){
+        SaveSys.SaveGeneration(population, genNumber);
+        if (betterGenFound) SaveSys.SaveLastBestGen(genNumber);
     }   
 
     //Getting the best Inidividual in the current genertion based solely on score
     public virtual Individual GetBestIndividual(Individual[] pop){
+        
         Individual bestIndividual = new Individual(shotQuantity);
-        foreach (Individual indiv in pop)
+        /*foreach (Individual indiv in pop)
         {
             if (indiv.score >= bestIndividual.score){
                 bestIndividual = indiv;
             }
-        }
+        }*/
+        bestIndividual = pop[pop.Length-1];
         Debug.Log("Best individual score was: " + bestIndividual.score);
         return bestIndividual;
     }
@@ -170,11 +189,11 @@ public class GeneticAlg : MonoBehaviour
         foreach (Individual indiv in population)
         {       
             for (int i = 0; i < shotQuantity; i++){
-                Debug.Log("(indiv angle + best angle) / 2 = nextindiv angle : " + indiv.angles[i] + " + " + chosenIndividual.angles[i] + " = " + (indiv.angles[i] +  chosenIndividual.angles[i])  /2);
+                //Debug.Log("(indiv angle + best angle) / 2 = nextindiv angle : " + indiv.angles[i] + " + " + chosenIndividual.angles[i] + " = " + (indiv.angles[i] +  chosenIndividual.angles[i])  /2);
                 auxAngles[i] = (indiv.angles[i] + chosenIndividual.angles[i]) / 2 ;//Crossover
-                if (Random.Range(0f, 100f) <= mutationChance){ 
-                    Debug.Log("Mutation occurred");
-                    auxAngles[i] = (chosenIndividual.angles[i] + Random.Range(-89f,89f))/2;
+                if (UnityEngine.Random.Range(0f, 100f) <= mutationChance){ 
+                    //Debug.Log("Mutation occurred");
+                    auxAngles[i] = (chosenIndividual.angles[i] + 3*UnityEngine.Random.Range(-89f,89f))/4;
                 }
             }
 
@@ -182,5 +201,16 @@ public class GeneticAlg : MonoBehaviour
             j++;
         }
         population = auxPopulation;
+        if (predationCounter >= predationRate) Predation();
+    }
+
+    private void Predation(){
+        Debug.Log("Predation Occurred");
+        for (int i=0; i<2; i++){
+            for (int j=0; j<shotQuantity; j++){
+                 population[i].angles[j] = UnityEngine.Random.Range(-89f, 89f);
+            }
+        }
+        predationCounter = 0;
     }
 }
