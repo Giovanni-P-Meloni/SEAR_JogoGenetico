@@ -10,3 +10,5 @@ Cada jogada, que consiste em 3 projéteis, é considerada um 'indivíduo' de uma
 OBS: Cada geração é salva quando chega ao fim
 
 Este repositório consiste dos arquivos necessários para abrir esta demonstração dentro da própria engine da Unity, caso contrário pode apenas abrir o executavel dentro da pasta "Build"
+
+Video Explicando sobre o trabalho, desde como roda-lo até como funciona: https://drive.google.com/file/d/1kPp-U6zFNnvBqD9ZbEUGLQdMhMOO-awB/view?usp=sharing
