@@ -12,6 +12,16 @@ public static class SaveSys{
             sw.WriteLine(mutationRate.ToString().Replace(",", "."));
         }
     }
+
+    public static void SaveToDataFrame(int generation, float meanFitness){
+        string path = Application.persistentDataPath + "/meanFit.df";
+        
+        using (StreamWriter sw = File.AppendText(path)){
+            sw.Write(generation +",");
+            sw.WriteLine(meanFitness.ToString().Replace(",", "."));
+        }
+
+    }
     public static void SaveGeneration(Individual[] population, int generation){
         BinaryFormatter formatter = new BinaryFormatter();
         string path = Application.persistentDataPath + "/generation" + generation + ".gen";
